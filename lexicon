@@ -29,19 +29,19 @@ function antonyms (){
     # Check if the value is null
     if [[ ${antonymList} == "[]" ]]; then
 
-        echo "    Its antonym(s) are: none"
+        echo "Its antonym(s) are: none"
 
     else
-        echo "    Its antonym(s) are:"
+        echo "Its antonym(s) are:"
 
         # Seperate each word by \newline
         IFS="
         " antonymList=(${antonymList})
-        # For every word in the synonym list, print it out
-        for (( i=0; i<${#antonymList[@]}; i++ ))
+        # For every word in the antonym list, print it out
+        for (( j=0; j<${#antonymList[@]}; j++ ))
         do
             # Fetch, find, and prettify the definition of the word
-            echo "      - $(tr -d '"[]' <<< ${antonymList[$i]})"
+            echo "  - $(tr -d '"[]' <<< ${antonymList[$j]})"
         done
 
     fi
@@ -84,10 +84,10 @@ function synonyms (){
         IFS="
         " synonymList=(${synonymList})
         # For every word in the synonym list, print it out
-        for (( i=0; i<${#synonymList[@]}; i++ ))
+        for (( x=0; x<${#synonymList[@]}; x++ ))
         do
             # Fetch and find the definition of the word
-            echo "      - $(tr -d '"' <<< ${synonymList[$i]})"
+            echo "      - $(tr -d '"' <<< ${synonymList[$x]})"
         done
 
     fi
@@ -117,58 +117,69 @@ function defineWord (){
     # Fetch the information returned from the GET request and code-readable-prettify it
     wordInfo=$(curl -s ${url} \
     -H "X-RapidAPI-Host: ${HOST}" \
-    -H "X-RapidAPI-Key: ${KEY}" | jq -c '.results[]')
+    -H "X-RapidAPI-Key: ${KEY}" | jq -c '.results[]?')
 
-    echo "Definition(s) of ${word}:"
-    echo
+    # Check if the value is null (then the word does not exist in the dictionary)
+    if [[ ${wordInfo} == "" ]] || [[ -z ${wordInfo} ]]; then
 
-    # A counter to itemize all the definitions
-    counter=1
+        echo "The word does not exist in the dictionary"
+        exit 0
 
-    # Iterate through all the definitions and print it out
-    while read wordData; do
-        
-        # Store this chunk of data so that it does not get manipulated
-        allInfo=${wordData}
-        
-        definition=$(jq '.definition' <<< ${wordData} | tr -d '"')
-        echo "[$counter] ${definition}"
+    else
+
+        echo "Definition(s) of ${word}:"
         echo
-        
-        # Check if the --partOfSpeech flag is set anywhere
-        if [[ $* == *"-ps"* ]] || [[ $* == *"--partOfSpeech"* ]]; then
-            # Fetch the part of speech
-            partOfSpeech
+
+        # A counter to itemize all the definitions
+        counter=1
+
+        # Iterate through all the definitions and print it out
+        while read wordData; do
+            
+            # Store this chunk of data so that it does not get manipulated
+            allInfo=${wordData}
+            
+            definition=$(jq '.definition' <<< ${wordData} | tr -d '"')
+            echo "[$counter] ${definition}"
             echo
-        fi
+            
+            # Check if the --partOfSpeech flag is set anywhere
+            if [[ $* == *"-ps"* ]] || [[ $* == *"--partOfSpeech"* ]]; then
+                # Fetch the part of speech
+                partOfSpeech
+                echo
+            fi
 
-        # Check if the --example flag is set anywhere
-        if [[ $* == *"-e"* ]] || [[ $* == *"--example"* ]]; then
-            # Fetch the example
-            examples
-            echo
-        fi
+            # Check if the --example flag is set anywhere
+            if [[ $* == *"-e"* ]] || [[ $* == *"--example"* ]]; then
+                # Fetch the example
+                examples
+                echo
+            fi
 
-        # Check if the --synonym flag is set anywhere
-        if [[  $* ==  *"-s"* ]] || [[ $* == *"--synonym"* ]]; then
-            # Fetch the synonym
-            synonyms
-            echo
-        fi
+            # Check if the --synonym flag is set anywhere
+            if [[  $* ==  *"-s"* ]] || [[ $* == *"--synonym"* ]]; then
 
-        # Check if the --antonym flag is set anywhere
-        if [[ $* == *"-a"* ]] || [[ $* == *"--antonym"* ]]; then
-            # Fetch the antonym
-            antonyms
-            echo
-        fi
+                # Fetch the synonym
+                synonyms
+                echo
+            fi
 
-        # Increment the counter
-        counter=`expr ${counter} + 1`
+            # Increment the counter
+            counter=`expr ${counter} + 1`
 
-    done <<< ${wordInfo}
-    
-    
+        done <<< ${wordInfo}
+
+    fi
+
+    # We check for the antonym flag outside because there is only one list of antonyms (API call is slightly different)
+    # Check if the --antonym flag is set anywhere
+    if [[ $* == *"-a"* ]] || [[ $* == *"--antonym"* ]]; then
+        # Fetch the antonym
+        antonyms
+        echo
+    fi
+ 
 }
 
 # Get the first argument (the word(s) to define)
@@ -181,6 +192,11 @@ for (( i=0; i<${#wordList[@]}; i++ ))
 do
     # Fetch and find the definition of the word
     word=${wordList[$i]}
-    defineWord $*
+
+    echo "================================================================================================================="
+    echo
+
+    defineWord $@
 
 done
+echo "================================================================================================================="
