@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# lexicon: A simple yet powerful dictionary at your fingertips in the command-line
+
+# Author: Andrei Biswas
+# GitHub: https://www.github.com/codeabiswas
+# LinkedIn: https://www.linkedin.com/in/andreibiswas/
+# Website: codeabiswas.github.io
+# Email: axb6972@rit.edu
+
+# Created On: Sunday May 25, 2019
+# Last Modified On: Sunday, May 25, 2019
+
+echo "Hello World!"
