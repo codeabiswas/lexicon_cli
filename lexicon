@@ -11,4 +11,48 @@
 # Created On: Sunday May 25, 2019
 # Last Modified On: Sunday, May 25, 2019
 
-echo "Hello World!"
+HOST=wordsapiv1.p.rapidapi.com
+KEY=1e3fff475bmsh333df77f00b3bcfp14c73bjsn2bc5d787b883
+
+# This functions defines the word by fetching information from the Word API
+function defineWord (){
+
+    # URL setup
+    url="https://wordsapiv1.p.rapidapi.com/words/${word}"
+    # Fetch the information returned from the GET request and code-readable-prettify it
+    wordInfo=$(curl -s ${url} \
+    -H "X-RapidAPI-Host: ${HOST}" \
+    -H "X-RapidAPI-Key: ${KEY}" | jq -c '.results[]')
+
+    echo "A ${word} means:"
+
+    # Iterate through all the definitions and print it out
+    while read wordDefinitions; do
+
+        #echo ${wordDefinitions}
+
+        definition=$(jq '.definition' <<< ${wordDefinitions} | tr -d '"')
+        echo "  - ${definition}"
+    
+    done <<< ${wordInfo}
+    
+}
+
+# Get the first argument (the word(s) to define)
+wordList=$1
+
+# Remove the '[]' and then seperate each word by the comma
+IFS=, wordList=($(tr -d '[]' <<< ${wordList}))
+# For every word in the list
+for (( i=0; i<${#wordList[@]}; i++ ))
+do
+    # Fetch and find the definition of the word
+    word=${wordList[$i]}
+    defineWord
+
+done
+
+
+
+
+
