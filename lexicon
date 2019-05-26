@@ -11,34 +11,55 @@
 # Created On: Sunday May 25, 2019
 # Last Modified On: Sunday, May 25, 2019
 
+# Host for Word API
 HOST=wordsapiv1.p.rapidapi.com
+# Key for Word API
 KEY=1e3fff475bmsh333df77f00b3bcfp14c73bjsn2bc5d787b883
 
-# This function prints out the examples of the word
+# This function prints out an example of the word
 function examples (){
 
-    # Fetch and print the first example of the word from the cached GET request
-    echo "Example: $(jq '.examples[0]' <<< ${wordInfo})"
+    # Fetch the first example of the word from the cached GET request
+    example=$(jq '.examples[0]' <<< ${allInfo})
 
+    # Check if the value is null
+    if [[ ${example} == "null" ]]; then
+    
+        echo "    Example: not given"
+    
+    else
+    
+        echo "    Example: $(tr -d '"' <<< ${example})"
+    
+    fi
 }
 
 # This function prints out the synonyms of the word
 function synonyms (){
 
     # Fetch the synonyms of the word from the cached GET request
-    synonymList=$(jq -c '.synonyms[]' <<< ${wordInfo})
+    synonymList=$(jq -c '.synonyms[]' <<< ${allInfo})
 
-    echo "Its synonym(s) are:"
+    # Check if the value is null
+    if [[ ${synonymList} == "null" ]]; then
 
-    # Seperate each word by the comma
-    IFS=, synonymList=(${synonymList})
-    # For every word in the synonym list, print it out
-    for (( i=0; i<${#synonymList[@]}; i++ ))
-    do
-        # Fetch and find the definition of the word
-        echo "  - ${synonymList[$i]}"
-        
-    done
+
+        echo "    Its synonym(s) are: none"
+
+    else
+        echo "    Its synonym(s) are:"
+
+        # Seperate each word by \newline
+        IFS="
+        " synonymList=(${synonymList})
+        # For every word in the synonym list, print it out
+        for (( i=0; i<${#synonymList[@]}; i++ ))
+        do
+            # Fetch and find the definition of the word
+            echo "      - $(tr -d '"' <<< ${synonymList[$i]})"
+        done
+
+    fi
 
 }
 
@@ -46,9 +67,14 @@ function synonyms (){
 function partOfSpeech (){
 
     # Fetch the part of speech of the word from the cached GET request
-    ps=$(jq '.partOfSpeech' <<< ${wordInfo} | tr -d '"')
+    ps=$(jq '.partOfSpeech' <<< ${allInfo} | tr -d '"')
 
-    echo "Part of Speech: ${ps}"
+    # Check if the value is null
+    if [[ ${ps} == "null" ]]; then
+        echo "    Part of Speech: unknown"
+    else
+        echo "    Part of Speech: ${ps}"
+    fi
 
 }
 
@@ -62,39 +88,56 @@ function defineWord (){
     -H "X-RapidAPI-Host: ${HOST}" \
     -H "X-RapidAPI-Key: ${KEY}" | jq -c '.results[]')
 
-    echo "A ${word} means:"
+    echo "Definition(s) of ${word}:"
+    echo
+
+    # A counter to itemize all the definitions
+    counter=1
 
     # Iterate through all the definitions and print it out
-    while read wordDefinitions; do
+    while read wordData; do
+        
+        # Store this chunk of data so that it does not get manipulated
+        allInfo=${wordData}
+        
+        definition=$(jq '.definition' <<< ${wordData} | tr -d '"')
+        echo "[$counter] ${definition}"
+        echo
+        
+        # Check if the --partOfSpeech flag is set anywhere
+        if [[ $* == *"-ps"* ]] || [[ $* == *"--partOfSpeech"* ]]; then
+            # Fetch the part of speech
+            partOfSpeech
+            echo
+        fi
 
-        definition=$(jq '.definition' <<< ${wordDefinitions} | tr -d '"')
-        echo "  - ${definition}"
-    
+        # Check if the --example flag is set anywhere
+        if [[ $* == *"-e"* ]] || [[ $* == *"--example"* ]]; then
+            # Fetch the example
+            examples
+            echo
+        fi
+
+        # Check if the --synonym flag is set anywhere
+        if [[  $* ==  *"-s"* ]] || [[ $* == *"--synonym"* ]]; then
+            # Fetch the synonym
+            synonyms
+            echo
+        fi
+
+        # Check if the --antonym flag is set anywhere
+        if [[ $* == *"-a"* ]] || [[ $* == *"--antonym"* ]]; then
+            # Fetch the antonym
+            antonyms
+            echo
+        fi
+
+        # Increment the counter
+        counter=`expr ${counter} + 1`
+
     done <<< ${wordInfo}
     
-    # Check if the --partOfSpeech flag is set anywhere
-    if [[ $* == *"-ps"* ]] || [[ $* == *"--partOfSpeech"* ]]; then
-        # Fetch the part of speech
-        partOfSpeech
-    fi
-
-    # Check if the --example flag is set anywhere
-    if [[ $* == *"-e"* ]] || [[ $* == *"--example"* ]]; then
-        # Fetch the example
-        examples
-    fi
-
-    # Check if the --synonym flag is set anywhere
-    if [[  $* ==  *"-s"* ]] || [[ $* == *"--synonym"* ]]; then
-        # Fetch the synonym
-        synonyms
-    fi
-
-    # Check if the --antonym flag is set anywhere
-    if [[ $* == *"-a"* ]] || [[ $* == *"--antonym"* ]]; then
-        # Fetch the antonym
-        antonyms
-    fi
+    
 }
 
 # Get the first argument (the word(s) to define)
