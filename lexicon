@@ -16,6 +16,38 @@ HOST=wordsapiv1.p.rapidapi.com
 # Key for Word API
 KEY=1e3fff475bmsh333df77f00b3bcfp14c73bjsn2bc5d787b883
 
+# This function prints out antonyms of the word
+function antonyms (){
+
+    # URL setup
+    antonymURL="https://wordsapiv1.p.rapidapi.com/words/${word}/antonyms"
+    # Fetch the antonyms of the word from the GET request and code-readable-prettify it
+    antonymList=$(curl -s ${antonymURL} \
+    -H "X-RapidAPI-Host: ${HOST}" \
+    -H "X-RapidAPI-Key: ${KEY}" | jq -c '.antonyms?')
+
+    # Check if the value is null
+    if [[ ${antonymList} == "[]" ]]; then
+
+        echo "    Its antonym(s) are: none"
+
+    else
+        echo "    Its antonym(s) are:"
+
+        # Seperate each word by \newline
+        IFS="
+        " antonymList=(${antonymList})
+        # For every word in the synonym list, print it out
+        for (( i=0; i<${#antonymList[@]}; i++ ))
+        do
+            # Fetch, find, and prettify the definition of the word
+            echo "      - $(tr -d '"[]' <<< ${antonymList[$i]})"
+        done
+
+    fi
+    
+}
+
 # This function prints out an example of the word
 function examples (){
 
@@ -38,11 +70,10 @@ function examples (){
 function synonyms (){
 
     # Fetch the synonyms of the word from the cached GET request
-    synonymList=$(jq -c '.synonyms[]' <<< ${allInfo})
+    synonymList=$(jq -c '.synonyms[]?' <<< ${allInfo})
 
     # Check if the value is null
-    if [[ ${synonymList} == "null" ]]; then
-
+    if [[ ${synonymList} == "null" ]] || [[ -z ${synonymList} ]]; then
 
         echo "    Its synonym(s) are: none"
 
@@ -70,7 +101,7 @@ function partOfSpeech (){
     ps=$(jq '.partOfSpeech' <<< ${allInfo} | tr -d '"')
 
     # Check if the value is null
-    if [[ ${ps} == "null" ]]; then
+    if [[ ${ps} == "null" ]] || [[ -z ${ps} ]]; then
         echo "    Part of Speech: unknown"
     else
         echo "    Part of Speech: ${ps}"
@@ -153,8 +184,3 @@ do
     defineWord $*
 
 done
-
-
-
-
-
