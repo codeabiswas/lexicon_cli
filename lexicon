@@ -126,7 +126,7 @@ function defineWord (){
         exit 0
 
     else
-
+        echo
         echo "Definition(s) of ${word}:"
         echo
 
@@ -186,7 +186,7 @@ function defineWord (){
 wordList=$1
 
 # Check the rest of the arguments that if the --help command is anywhere, then skip everything and print that out instead
-if [[ ${@:2} == *"-h"* ]] || [[ ${@:2} == *"--help"* ]]; then
+if [[ ${@:2} == *"-h"* ]] || [[ ${@:2} == *"--help"* ]] || [[ -z $2 ]]; then
 
     echo "A simple yet powerful dictionary at your fingertips using the command-line."
     echo
@@ -206,6 +206,7 @@ if [[ ${@:2} == *"-h"* ]] || [[ ${@:2} == *"--help"* ]]; then
     echo "-e, --example             : An example sentence"
     echo
     echo "Any of the arguments can be -h or --help. This will show the above information on how to use lexicon."
+    echo "Simply typing the command itself will also bring these instructions up."
     # Exit the script
     exit 0
 fi
@@ -219,7 +220,6 @@ do
     word=${wordList[$i]}
 
     echo "================================================================================================================="
-    echo
 
     defineWord $@
 
