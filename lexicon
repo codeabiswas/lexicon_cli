@@ -1,0 +1,227 @@
+#!/bin/bash
+
+# lexicon: A simple yet powerful dictionary at your fingertips in the command-line
+
+# Author: Andrei Biswas
+# GitHub: https://www.github.com/codeabiswas
+# LinkedIn: https://www.linkedin.com/in/andreibiswas/
+# Website: codeabiswas.github.io
+# Email: axb6972@rit.edu
+
+# Created On: Sunday May 25, 2019
+# Last Modified On: Sunday, May 25, 2019
+
+# Host for Word API
+HOST=wordsapiv1.p.rapidapi.com
+# Key for Word API
+KEY=1e3fff475bmsh333df77f00b3bcfp14c73bjsn2bc5d787b883
+
+# This function prints out antonyms of the word
+function antonyms (){
+
+    # URL setup
+    antonymURL="https://wordsapiv1.p.rapidapi.com/words/${word}/antonyms"
+    # Fetch the antonyms of the word from the GET request and code-readable-prettify it
+    antonymList=$(curl -s ${antonymURL} \
+    -H "X-RapidAPI-Host: ${HOST}" \
+    -H "X-RapidAPI-Key: ${KEY}" | jq -c '.antonyms?')
+
+    # Check if the value is null
+    if [[ ${antonymList} == "[]" ]]; then
+
+        echo "Its antonym(s) are: none"
+
+    else
+        echo "Its antonym(s) are:"
+
+        # Seperate each word by \newline
+        IFS="
+        " antonymList=(${antonymList})
+        # For every word in the antonym list, print it out
+        for (( j=0; j<${#antonymList[@]}; j++ ))
+        do
+            # Fetch, find, and prettify the definition of the word
+            echo "  - $(tr -d '"[]' <<< ${antonymList[$j]})"
+        done
+
+    fi
+    
+}
+
+# This function prints out an example of the word
+function examples (){
+
+    # Fetch the first example of the word from the cached GET request
+    example=$(jq '.examples[0]' <<< ${allInfo})
+
+    # Check if the value is null
+    if [[ ${example} == "null" ]]; then
+    
+        echo "    Example: not given"
+    
+    else
+    
+        echo "    Example: $(tr -d '"' <<< ${example})"
+    
+    fi
+}
+
+# This function prints out the synonyms of the word
+function synonyms (){
+
+    # Fetch the synonyms of the word from the cached GET request
+    synonymList=$(jq -c '.synonyms[]?' <<< ${allInfo})
+
+    # Check if the value is null
+    if [[ ${synonymList} == "null" ]] || [[ -z ${synonymList} ]]; then
+
+        echo "    Its synonym(s) are: none"
+
+    else
+        echo "    Its synonym(s) are:"
+
+        # Seperate each word by \newline
+        IFS="
+        " synonymList=(${synonymList})
+        # For every word in the synonym list, print it out
+        for (( x=0; x<${#synonymList[@]}; x++ ))
+        do
+            # Fetch and find the definition of the word
+            echo "      - $(tr -d '"' <<< ${synonymList[$x]})"
+        done
+
+    fi
+
+}
+
+# This function prints out the part of speech of the word
+function partOfSpeech (){
+
+    # Fetch the part of speech of the word from the cached GET request
+    ps=$(jq '.partOfSpeech' <<< ${allInfo} | tr -d '"')
+
+    # Check if the value is null
+    if [[ ${ps} == "null" ]] || [[ -z ${ps} ]]; then
+        echo "    Part of Speech: unknown"
+    else
+        echo "    Part of Speech: ${ps}"
+    fi
+
+}
+
+# This function defines the word by fetching information from the Word API
+function defineWord (){
+
+    # URL setup
+    url="https://wordsapiv1.p.rapidapi.com/words/${word}"
+    # Fetch the information returned from the GET request and code-readable-prettify it
+    wordInfo=$(curl -s ${url} \
+    -H "X-RapidAPI-Host: ${HOST}" \
+    -H "X-RapidAPI-Key: ${KEY}" | jq -c '.results[]?')
+
+    # Check if the value is null (then the word does not exist in the dictionary)
+    if [[ ${wordInfo} == "" ]] || [[ -z ${wordInfo} ]]; then
+        echo "The word does not exist in the dictionary"
+        echo "================================================================================================================="
+        exit 0
+
+    else
+        echo
+        echo "Definition(s) of ${word}:"
+        echo
+
+        # A counter to itemize all the definitions
+        counter=1
+
+        # Iterate through all the definitions and print it out
+        while read wordData; do
+            
+            # Store this chunk of data so that it does not get manipulated
+            allInfo=${wordData}
+            
+            definition=$(jq '.definition' <<< ${wordData} | tr -d '"')
+            echo "[$counter] ${definition}"
+            echo
+            
+            # Check if the --partOfSpeech flag is set anywhere
+            if [[ $* == *"-ps"* ]] || [[ $* == *"--partOfSpeech"* ]]; then
+                # Fetch the part of speech
+                partOfSpeech
+                echo
+            fi
+
+            # Check if the --example flag is set anywhere
+            if [[ $* == *"-e"* ]] || [[ $* == *"--example"* ]]; then
+                # Fetch the example
+                examples
+                echo
+            fi
+
+            # Check if the --synonym flag is set anywhere
+            if [[  $* ==  *"-s"* ]] || [[ $* == *"--synonym"* ]]; then
+
+                # Fetch the synonym
+                synonyms
+                echo
+            fi
+
+            # Increment the counter
+            counter=`expr ${counter} + 1`
+
+        done <<< ${wordInfo}
+
+    fi
+
+    # We check for the antonym flag outside because there is only one list of antonyms (API call is slightly different)
+    # Check if the --antonym flag is set anywhere
+    if [[ "$*" = *"-a"* ]] || [[ "$*" = *"--antonym"* ]]; then
+        # Fetch the antonym
+        antonyms
+        echo
+    fi
+ 
+}
+
+# Get the first argument (the word(s) to define)
+wordList=$1
+
+# Check the rest of the arguments that if the --help command is anywhere, then skip everything and print that out instead
+if [[ ${@:2} == *"-h"* ]] || [[ ${@:2} == *"--help"* ]] || [[ -z $2 ]]; then
+
+    echo "A simple yet powerful dictionary at your fingertips using the command-line."
+    echo
+    echo "usage: lexicon [word1,word2,word3,...] args"
+    echo
+    echo "Options and arguments:"
+    echo
+    echo "[word1,word2,word3,...]:"
+    echo "To find the definition(s) of a word, put the word in a square bracket and simply hit Return."
+    echo "To find the definition(s) of multiple words, put the words in a square bracket and seperate the words"
+    echo "using a comma and NO spaces."
+    echo 
+    echo "args:"
+    echo "-ps, --partOfSpeech       : Part of Speech"
+    echo "-s, --synonym             : Synonyms"
+    echo "-a, --antoynm             : Antonyms"
+    echo "-e, --example             : An example sentence"
+    echo
+    echo "Any of the arguments can be -h or --help. This will show the above information on how to use lexicon."
+    echo "Simply typing the command itself will also bring these instructions up."
+    # Exit the script
+    exit 0
+fi
+
+# Remove the '[]' and then seperate each word by the comma
+IFS=, wordList=($(tr -d '[]' <<< ${wordList}))
+# For every word in the list
+for (( i=0; i<${#wordList[@]}; i++ ))
+do
+    # Fetch and find the definition of the word
+    word=${wordList[$i]}
+
+    echo "================================================================================================================="
+
+    defineWord $@
+
+done
+echo "================================================================================================================="
