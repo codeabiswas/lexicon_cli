@@ -121,8 +121,8 @@ function defineWord (){
 
     # Check if the value is null (then the word does not exist in the dictionary)
     if [[ ${wordInfo} == "" ]] || [[ -z ${wordInfo} ]]; then
-
         echo "The word does not exist in the dictionary"
+        echo "================================================================================================================="
         exit 0
 
     else
@@ -174,7 +174,7 @@ function defineWord (){
 
     # We check for the antonym flag outside because there is only one list of antonyms (API call is slightly different)
     # Check if the --antonym flag is set anywhere
-    if [[ $* == *"-a"* ]] || [[ $* == *"--antonym"* ]]; then
+    if [[ "$*" = *"-a"* ]] || [[ "$*" = *"--antonym"* ]]; then
         # Fetch the antonym
         antonyms
         echo
@@ -184,6 +184,31 @@ function defineWord (){
 
 # Get the first argument (the word(s) to define)
 wordList=$1
+
+# Check the rest of the arguments that if the --help command is anywhere, then skip everything and print that out instead
+if [[ ${@:2} == *"-h"* ]] || [[ ${@:2} == *"--help"* ]]; then
+
+    echo "A simple yet powerful dictionary at your fingertips using the command-line."
+    echo
+    echo "usage: lexicon [word1,word2,word3,...] args"
+    echo
+    echo "Options and arguments:"
+    echo
+    echo "[word1,word2,word3,...]:"
+    echo "To find the definition(s) of a word, put the word in a square bracket and simply hit Return."
+    echo "To find the definition(s) of multiple words, put the words in a square bracket and seperate the words"
+    echo "using a comma and NO spaces."
+    echo 
+    echo "args:"
+    echo "-ps, --partOfSpeech       : Part of Speech"
+    echo "-s, --synonym             : Synonyms"
+    echo "-a, --antoynm             : Antonyms"
+    echo "-e, --example             : An example sentence"
+    echo
+    echo "Any of the arguments can be -h or --help. This will show the above information on how to use lexicon."
+    # Exit the script
+    exit 0
+fi
 
 # Remove the '[]' and then seperate each word by the comma
 IFS=, wordList=($(tr -d '[]' <<< ${wordList}))
